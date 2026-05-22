@@ -114,6 +114,36 @@ func New(ctx context.Context, cfg Config) (*Plugin, error) {
 func (p *Plugin) RegisterRoutes(r gin.IRouter) {
 	r.GET("/healthz", p.handleHealthz)
 	r.GET("/metrics", p.handleMetricsExposition)
+
+	api := r.Group("/api")
+	{
+		authed := api.Group("", p.requireAuthViaDock())
+		{
+			authed.GET("/library/devices", p.handleRevDeviceList)
+			authed.GET("/library/devices/recent", p.handleRevDeviceRecent)
+			authed.GET("/library/devices/:id", p.handleRevDeviceGet)
+			authed.GET("/library/firmwares", p.handleRevFirmwareList)
+			authed.GET("/library/firmwares/matching", p.handleRevFirmwareMatching)
+			authed.GET("/library/firmwares/:id", p.handleRevFirmwareGet)
+			authed.GET("/library/firmwares/:id/download", p.handleRevFirmwareDownload)
+			authed.GET("/library/functions", p.handleRevFunctionList)
+			authed.GET("/library/functions/lookup-by-address", p.handleRevFunctionLookupByAddress)
+			authed.GET("/library/functions/lookup-by-symbol", p.handleRevFunctionLookupBySymbol)
+			authed.GET("/library/functions/search", p.handleRevFunctionSearch)
+			authed.GET("/library/functions/match-signature", p.handleRevFunctionMatchSignature)
+			authed.GET("/library/functions/:id", p.handleRevFunctionGet)
+		}
+		admin := api.Group("", p.requireAdminViaDock())
+		{
+			admin.POST("/library/devices", p.handleRevDeviceUpsert)
+			admin.DELETE("/library/devices/:id", p.handleRevDeviceDelete)
+			admin.POST("/library/firmwares", p.handleRevFirmwareCreate)
+			admin.POST("/library/firmwares/upload", p.handleRevFirmwareUpload)
+			admin.DELETE("/library/firmwares/:id", p.handleRevFirmwareDelete)
+			admin.POST("/library/functions", p.handleRevFunctionCreate)
+			admin.DELETE("/library/functions/:id", p.handleRevFunctionDelete)
+		}
+	}
 }
 
 func (p *Plugin) Start(ctx context.Context) {
