@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>知识库 — Polar-</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/polaris-logo.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="lp-page">
+    <div class="lp-app">
+      <aside class="lp-sidebar lp-sidebar-wide">
+        <a class="lp-brand" href="/dashboard.html" data-site-brand>
+          <img data-site-icon alt="" />
+          <span class="lp-brand-name" data-site-name>Polar-</span>
+        </a>
+        <nav class="lp-nav">
+          <a class="lp-nav-item" href="/dashboard.html"><span class="lp-nav-icon" data-icon="layout-dashboard">⊞</span><span>Dashboard</span></a>
+          <a class="lp-nav-item" href="/hosts.html"><span class="lp-nav-icon" data-icon="server">▣</span><span>主机</span></a>
+          <a class="lp-nav-item active" href="/library.html"><span class="lp-nav-icon" data-icon="book">📚</span><span>知识库</span></a>
+          <a class="lp-nav-item" href="/system.html"><span class="lp-nav-icon" data-icon="cpu">⚙</span><span>系统信息</span></a>
+        </nav>
+        <div class="lp-sidebar-foot">
+          <div class="lp-foot-avatar" id="lpFootAvatar">A</div>
+          <div class="lp-foot-info">
+            <div class="lp-foot-name" id="lpFootName">—</div>
+            <div class="lp-foot-role" id="lpFootRole">—</div>
+          </div>
+          <div class="lp-sidebar-foot-actions">
+            <button id="logoutBtn" class="lp-foot-icon-btn" type="button" title="Log out"><span data-icon="log-out"></span></button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="lp-main">
+        <div class="lp-topbar">
+          <span class="lp-topbar-title">知识库 · Devices / Firmwares / Functions</span>
+          <div class="lp-topbar-end" style="display:flex; gap:6px;">
+            <button class="lp-tab" data-tab="devices" id="tabDevices">📱 Devices</button>
+            <button class="lp-tab lp-tab-active" data-tab="firmwares" id="tabFirmwares">💾 Firmwares</button>
+            <button class="lp-tab" data-tab="functions" id="tabFunctions">𝑓 Functions</button>
+          </div>
+        </div>
+
+        <div class="lp-content" style="padding: 12px; overflow-y:auto;">
+          <!-- ─────────── Devices ─────────── -->
+          <section id="paneDevices" class="lp-pane" hidden>
+            <div class="lp-preview-main">
+              <div class="lp-preview-head">
+                <span class="badge">设备列表</span>
+                <span id="devicesSummary" class="lp-mode-badge">—</span>
+                <span style="flex:1;"></span>
+                <button id="devicesRefreshBtn" class="btn-inline btn-secondary" type="button">⟲</button>
+                <button id="newDeviceBtn" class="btn-inline btn-primary" type="button">+ 新建</button>
+              </div>
+              <div class="lp-preview-body">
+                <div class="toolbar" style="margin-bottom: 8px; gap: 6px;">
+                  <label class="meta-subtitle">CPID <input id="devCpidFilter" class="input" style="width:100px;" type="text" placeholder="0x8101 或 33025" /></label>
+                  <label class="meta-subtitle">BDID <input id="devBdidFilter" class="input" style="width:80px;" type="text" placeholder="10" /></label>
+                  <button id="devApplyFilter" class="btn-inline btn-secondary" type="button">过滤</button>
+                </div>
+                <table id="devicesTable" class="lp-table" style="width:100%;" hidden>
+                  <thead><tr><th>ECID</th><th>CPID</th><th>BDID</th><th>Chip</th><th>Board</th><th>OS</th><th>Last seen</th><th></th></tr></thead>
+                  <tbody id="devicesTbody"></tbody>
+                </table>
+                <div id="devicesEmpty" class="meta-subtitle" hidden>暂无设备。插一台 iOS 进 recovery 让 agent 自动注册，或点 + 新建手工录入。</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ─────────── Firmwares ─────────── -->
+          <section id="paneFirmwares" class="lp-pane">
+            <div class="lp-preview-main">
+              <div class="lp-preview-head">
+                <span class="badge">固件库</span>
+                <span id="firmwaresSummary" class="lp-mode-badge">—</span>
+                <span style="flex:1;"></span>
+                <button id="firmwaresRefreshBtn" class="btn-inline btn-secondary" type="button">⟲</button>
+                <button id="uploadFirmwareBtn" class="btn-inline btn-primary" type="button">⬆ 上传固件</button>
+              </div>
+              <div class="lp-preview-body">
+                <div class="toolbar" style="margin-bottom: 8px; gap: 6px;">
+                  <label class="meta-subtitle">Kind <input id="fwKindFilter" class="input" style="width:120px;" type="text" placeholder="iboot / wifi / sep" /></label>
+                  <label class="meta-subtitle">CPID <input id="fwCpidFilter" class="input" style="width:100px;" type="text" placeholder="0x8101" /></label>
+                  <button id="fwApplyFilter" class="btn-inline btn-secondary" type="button">过滤</button>
+                </div>
+                <table id="firmwaresTable" class="lp-table" style="width:100%;" hidden>
+                  <thead><tr><th>Kind</th><th>Vendor</th><th>Version</th><th>Compat (CPID)</th><th>Size</th><th>SHA</th><th>Added</th><th></th></tr></thead>
+                  <tbody id="firmwaresTbody"></tbody>
+                </table>
+                <div id="firmwaresEmpty" class="meta-subtitle" hidden>暂无固件。点 ⬆ 上传一个。</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ─────────── Functions ─────────── -->
+          <section id="paneFunctions" class="lp-pane" hidden>
+            <div class="lp-preview-main">
+              <div class="lp-preview-head">
+                <span class="badge">函数库</span>
+                <span id="functionsSummary" class="lp-mode-badge">—</span>
+              </div>
+              <div class="lp-preview-body">
+                <div class="toolbar" style="margin-bottom: 8px; gap: 6px; flex-wrap: wrap;">
+                  <label class="meta-subtitle">Firmware ID <input id="fnFwId" class="input" style="width:100px;" type="number" min="1" /></label>
+                  <label class="meta-subtitle">Address <input id="fnAddr" class="input" style="width:160px;" type="text" placeholder="0x80001234" /></label>
+                  <button id="fnLookupAddrBtn" class="btn-inline btn-secondary" type="button">lookup_by_address</button>
+                  <label class="meta-subtitle">Symbol <input id="fnSymbol" class="input" style="width:160px;" type="text" placeholder="iboot_main" /></label>
+                  <button id="fnLookupSymBtn" class="btn-inline btn-secondary" type="button">lookup_by_symbol</button>
+                  <label class="meta-subtitle">Search <input id="fnSearch" class="input" style="width:160px;" type="text" placeholder="panic / verify_…" /></label>
+                  <button id="fnSearchBtn" class="btn-inline btn-secondary" type="button">search</button>
+                </div>
+                <div id="functionsResult" class="settings-section-card" style="margin-bottom: 12px;" hidden></div>
+                <table id="functionsTable" class="lp-table" style="width:100%;" hidden>
+                  <thead><tr><th>Addr</th><th>Symbol</th><th>Prototype</th><th>Purpose</th><th>Conf</th><th></th></tr></thead>
+                  <tbody id="functionsTbody"></tbody>
+                </table>
+                <div id="functionsEmpty" class="meta-subtitle" hidden>选个 firmware_id 看那条固件的全部函数，或用上面的 lookup / search 工具。</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── New-device modal ─────────── -->
+    <div id="deviceModal" class="lp-modal" hidden>
+      <div class="lp-modal-card" style="max-width: 540px;">
+        <div class="lp-modal-head">
+          <span class="lp-modal-title">新建设备</span>
+          <button id="deviceModalCloseBtn" type="button" class="lp-modal-close">✕</button>
+        </div>
+        <div class="lp-modal-body">
+          <div class="settings-section-card" style="margin-bottom: 8px;">
+            <label class="settings-section-title">ECID (可选，64-bit; 0x… or decimal)</label>
+            <input id="devEcid" class="input" type="text" placeholder="0xdeadbeef" />
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="settings-section-card"><label class="settings-section-title">CPID *</label><input id="devCpid" class="input" type="text" placeholder="0x8101" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">BDID</label><input id="devBdid" class="input" type="text" placeholder="10" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">CPRV</label><input id="devCprv" class="input" type="text" placeholder="0x11" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">Chip name</label><input id="devChipName" class="input" type="text" placeholder="M1" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">Board name</label><input id="devBoardName" class="input" type="text" placeholder="J293" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">OS</label><input id="devOs" class="input" type="text" placeholder="macOS 14.3 / recovery" /></div>
+          </div>
+          <div class="settings-section-card" style="margin-top: 8px;">
+            <label class="settings-section-title">Notes</label>
+            <input id="devNotes" class="input" type="text" placeholder="iPhone 12 in drawer 3" />
+          </div>
+          <div id="deviceModalError" class="status-text" style="color: var(--danger,#c00); margin-top: 6px;"></div>
+        </div>
+        <div class="lp-modal-foot">
+          <button id="deviceModalCancelBtn" type="button" class="btn-inline btn-secondary">取消</button>
+          <button id="deviceModalSubmitBtn" type="button" class="btn-inline btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── Upload-firmware modal ─────────── -->
+    <div id="firmwareModal" class="lp-modal" hidden>
+      <div class="lp-modal-card" style="max-width: 580px;">
+        <div class="lp-modal-head">
+          <span class="lp-modal-title">上传固件</span>
+          <button id="firmwareModalCloseBtn" type="button" class="lp-modal-close">✕</button>
+        </div>
+        <div class="lp-modal-body">
+          <p class="meta-subtitle" style="margin: 0 0 10px 0;">
+            文件上传到 dock 本地 (<code>uploadDir/firmwares/&lt;sha&gt;</code>)，按 sha256 去重。仅元数据写库。
+          </p>
+          <div class="settings-section-card" style="margin-bottom: 8px;">
+            <label class="settings-section-title">文件 *</label>
+            <input id="fwFile" class="input" type="file" />
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="settings-section-card"><label class="settings-section-title">Kind *</label><input id="fwKind" class="input" type="text" placeholder="iboot / wifi / sep / lcd / touch / ane" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">Version *</label><input id="fwVersion" class="input" type="text" placeholder="iBoot-7459.40.10" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">Vendor</label><input id="fwVendor" class="input" type="text" placeholder="apple / broadcom" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">Format</label><input id="fwFormat" class="input" type="text" placeholder="img4 / raw / elf" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">CPID compat (csv)</label><input id="fwCpidCompat" class="input" type="text" placeholder="33025,33027" /></div>
+            <div class="settings-section-card"><label class="settings-section-title">BDID compat (csv)</label><input id="fwBdidCompat" class="input" type="text" placeholder="10,12" /></div>
+          </div>
+          <div class="settings-section-card" style="margin-top: 8px;">
+            <label class="settings-section-title">Extracted from</label>
+            <input id="fwExtracted" class="input" type="text" placeholder="iPhone13,2_17.2_21C5036c_Restore.ipsw" />
+          </div>
+          <div id="firmwareModalError" class="status-text" style="color: var(--danger,#c00); margin-top: 6px;"></div>
+          <div id="firmwareModalProgress" class="meta-subtitle" style="margin-top: 6px;"></div>
+        </div>
+        <div class="lp-modal-foot">
+          <button id="firmwareModalCancelBtn" type="button" class="btn-inline btn-secondary">取消</button>
+          <button id="firmwareModalSubmitBtn" type="button" class="btn-inline btn-primary">上传</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/scripts/library.js"></script>
+  </body>
+</html>
