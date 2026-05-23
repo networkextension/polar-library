@@ -1,6 +1,9 @@
 // Mirrors internal/app/dock/rev_store.go.
 
-import type { ErrorResponse } from "./dashboard.js";
+// Shared by all envelope responses below. Kept inline so this plugin
+// doesn't depend on the dock's dashboard.ts types — the polar-ui-common
+// package doesn't re-export it.
+type ErrorResponse = { error?: string };
 
 export type RevDevice = {
   id: number;
