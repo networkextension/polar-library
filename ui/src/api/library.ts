@@ -1,6 +1,6 @@
 // Typed fetch wrappers for /api/library/...
 
-import { requestJson } from "./http.js";
+import { requestJson } from "@networkextension/polar-ui-common/api/http";
 import type {
   RevDeviceListResponse,
   RevDeviceResponse,
