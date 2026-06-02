@@ -21,6 +21,7 @@ import {
 import { logout } from "@networkextension/polar-ui-common/api/session";
 import { byId } from "@networkextension/polar-ui-common/lib/dom";
 import { hydrateSiteBrand, renderSidebarFoot } from "@networkextension/polar-ui-common/lib/site";
+import { mountPlatformNav } from "@networkextension/polar-ui-common/lib/sidebar";
 import { bindThemeSync, initStoredTheme } from "@networkextension/polar-ui-common/lib/theme";
 import type { RevDevice, RevFirmware, RevFunction } from "./types/library.js";
 
@@ -436,6 +437,7 @@ byId<HTMLButtonElement>("logoutBtn").addEventListener("click", () => void logout
 
 async function bootstrap(): Promise<void> {
   await hydrateSiteBrand();
+  void mountPlatformNav();
   await renderSidebarFoot();
   const saved = (() => {
     try {
