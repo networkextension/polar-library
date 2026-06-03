@@ -1,19 +1,17 @@
 package library
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
+	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	sdk "github.com/networkextension/polar-sdk"
 )
 
 // Firmware blob upload (P-library-0b complement to the metadata-only
@@ -44,10 +42,6 @@ func (p *Plugin) firmwareBlobDir() string {
 //   format            (optional) — "img4" / "raw" / "elf" / etc
 //   extracted_from    (optional) — source IPSW / OTA / artifact label
 func (p *Plugin) handleRevFirmwareUpload(c *gin.Context) {
-	if p.BlobDir == "" {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "upload not configured (UPLOAD_DIR unset)"})
-		return
-	}
 	userID, _ := c.Get("user_id")
 	userIDStr, _ := userID.(string)
 
@@ -63,75 +57,43 @@ func (p *Plugin) handleRevFirmwareUpload(c *gin.Context) {
 		return
 	}
 
-	// Stream into a temp file under uploadDir so the final move is on
-	// the same filesystem (avoids cross-device rename failure).
-	if err := os.MkdirAll(p.firmwareBlobDir(), 0o755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "mkdir storage: " + err.Error()})
-		return
-	}
-	tmp, err := os.CreateTemp(p.firmwareBlobDir(), "upload-*.part")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "tmp file: " + err.Error()})
-		return
-	}
-	tmpPath := tmp.Name()
-	defer func() {
-		// Defensive: if anything below errors after the temp file was
-		// opened, make sure we don't leave .part files lying around.
-		if _, err := os.Stat(tmpPath); err == nil {
-			_ = os.Remove(tmpPath)
-		}
-	}()
-
 	src, err := header.Open()
 	if err != nil {
-		_ = tmp.Close()
 		c.JSON(http.StatusBadRequest, gin.H{"error": "open uploaded file: " + err.Error()})
 		return
 	}
-	hasher := sha256.New()
-	w := io.MultiWriter(tmp, hasher)
-	written, err := io.Copy(w, src)
-	_ = src.Close()
-	_ = tmp.Close()
+	defer src.Close()
+
+	// Single-write: stream straight into the central assets catalog. No
+	// library-svc-local copy. The catalog Name is unique per upload; the
+	// bytes are content-addressed (deduped) by sha256 inside assets.
+	meta, err := p.Dock.AssetUpload(sdk.AssetUploadInput{
+		Kind:       "package",
+		Name:       "firmwares/" + sanitizeFilename(kind) + "/" + sanitizeFilename(version) + "-" + firmwareRandHex(4),
+		Version:    "v1",
+		Visibility: "private",
+		Mime:       "application/octet-stream",
+		Metadata:   map[string]any{"firmware_kind": kind, "firmware_version": version},
+	}, src)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "write: " + err.Error()})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "assets upload failed: " + err.Error()})
 		return
 	}
-	if written == 0 {
+	if meta.SizeBytes == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "file is empty"})
 		return
 	}
-	sum := hex.EncodeToString(hasher.Sum(nil))
+	sum := meta.SHA256
 
-	// Final content-addressed path
-	finalRel := filepath.Join("firmwares", sum[:2], sum)
-	finalAbs := filepath.Join(p.BlobDir, finalRel)
-	if err := os.MkdirAll(filepath.Dir(finalAbs), 0o755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "mkdir final: " + err.Error()})
-		return
-	}
-	if _, err := os.Stat(finalAbs); err == nil {
-		// Dedup hit — blob already exists for this sha. Drop the temp,
-		// keep the existing file (saves a needless atomic rename).
-		_ = os.Remove(tmpPath)
-	} else if err := os.Rename(tmpPath, finalAbs); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "rename: " + err.Error()})
-		return
-	}
-
-	// Build the metadata row. blob_uri stores a file:// URI for local
-	// FS storage; object-store backends would write s3:// / r2:// /etc
-	// here in a future Phase.
 	f := &RevFirmware{
 		Kind:          kind,
 		Vendor:        strings.TrimSpace(c.PostForm("vendor")),
 		Version:       version,
 		ChipIDCompat:  parseIntCSV(c.PostForm("chip_id_compat")),
 		BoardIDCompat: parseIntCSV(c.PostForm("board_id_compat")),
-		BlobURI:       "file://" + finalAbs,
+		BlobURI:       "asset://" + strconv.FormatInt(meta.ID, 10),
 		BlobSHA256:    sum,
-		SizeBytes:     written,
+		SizeBytes:     meta.SizeBytes,
 		Format:        strings.TrimSpace(c.PostForm("format")),
 		ExtractedFrom: strings.TrimSpace(c.PostForm("extracted_from")),
 		AddedBy:       userIDStr,
@@ -139,8 +101,6 @@ func (p *Plugin) handleRevFirmwareUpload(c *gin.Context) {
 
 	out, err := p.insertRevFirmware(f, time.Now().UTC())
 	if err != nil {
-		// Most likely cause: blob_sha256 UNIQUE collision — the file
-		// is already in the catalog. Surface that as 409.
 		if strings.Contains(err.Error(), "ux_rev_firmwares_sha") || strings.Contains(err.Error(), "duplicate key") {
 			c.JSON(http.StatusConflict, gin.H{
 				"error":       "firmware with this sha256 already exists in the library",
@@ -150,6 +110,9 @@ func (p *Plugin) handleRevFirmwareUpload(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db: " + err.Error()})
 		return
+	}
+	if err := p.setFirmwareAssetID(out.ID, meta.ID); err != nil {
+		log.Printf("library: firmware %s/%s set asset_id=%d: %v", kind, version, meta.ID, err)
 	}
 	c.JSON(http.StatusOK, gin.H{"firmware": out})
 }
@@ -170,6 +133,11 @@ func (p *Plugin) handleRevFirmwareDownload(c *gin.Context) {
 	}
 	if f == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	// Dual-read: prefer the central assets catalog; fall back to the
+	// local blob for rows not yet migrated (or if assets is down).
+	if p.streamFirmwareFromAssets(c, f) {
 		return
 	}
 	abs, err := p.resolveFirmwareBlobPath(f)

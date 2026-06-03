@@ -98,7 +98,7 @@ func New(ctx context.Context, cfg Config) (*Plugin, error) {
 		return nil, fmt.Errorf("dock /ping rejected: HTTP %d", resp.StatusCode)
 	}
 
-	return &Plugin{
+	p := &Plugin{
 		DB:         db,
 		Dock:       dock,
 		Name:       cfg.PluginName,
@@ -108,7 +108,12 @@ func New(ctx context.Context, cfg Config) (*Plugin, error) {
 		MetricsTok: cfg.MetricsToken,
 		metrics:    newLibraryMetrics(),
 		startedAt:  time.Now(),
-	}, nil
+	}
+	// Assets migration: ensure rev_firmwares.asset_id exists. Non-fatal.
+	if err := p.ensureFirmwareAssetColumn(); err != nil {
+		log.Printf("library: ensure asset_id column: %v", err)
+	}
+	return p, nil
 }
 
 func (p *Plugin) RegisterRoutes(r gin.IRouter) {
@@ -148,6 +153,7 @@ func (p *Plugin) RegisterRoutes(r gin.IRouter) {
 
 func (p *Plugin) Start(ctx context.Context) {
 	go p.heartbeatLoop(ctx)
+	go p.backfillFirmwareAssetsOnce() // self-migrate any local-only firmware blobs to assets
 }
 
 func (p *Plugin) Close() error {
