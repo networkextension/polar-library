@@ -26,7 +26,6 @@ func main() {
 		PluginToken:  os.Getenv("POLAR_PLUGIN_TOKEN"),
 		Listen:       envOrDefault("POLAR_LIBRARY_LISTEN", "127.0.0.1:8094"),
 		BuildVersion: envOrDefault("POLAR_LIBRARY_VERSION", "0.0.1"),
-		BlobDir:      envOrDefault("POLAR_LIBRARY_BLOB_DIR", "/Users/local/library-svc-data"),
 		MetricsToken: os.Getenv("POLAR_LIBRARY_METRICS_TOKEN"),
 	}
 	if strings.TrimSpace(cfg.PluginToken) == "" {
@@ -50,8 +49,8 @@ func main() {
 
 	srv := &http.Server{Addr: cfg.Listen, Handler: r, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
-		log.Printf("library-svc listening on %s (dock=%s, name=%s, ver=%s, blob=%s)",
-			cfg.Listen, cfg.DockBase, cfg.PluginName, cfg.BuildVersion, cfg.BlobDir)
+		log.Printf("library-svc listening on %s (dock=%s, name=%s, ver=%s)",
+			cfg.Listen, cfg.DockBase, cfg.PluginName, cfg.BuildVersion)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("ListenAndServe: %v", err)
 		}

@@ -36,7 +36,6 @@ type Plugin struct {
 	Name       string
 	Listen     string
 	Ver        string
-	BlobDir    string // $POLAR_LIBRARY_BLOB_DIR — firmware blob root
 	MetricsTok string
 
 	metrics   *libraryMetrics
@@ -50,7 +49,6 @@ type Config struct {
 	PluginToken  string
 	Listen       string
 	BuildVersion string
-	BlobDir      string
 	MetricsToken string
 }
 
@@ -67,9 +65,6 @@ func New(ctx context.Context, cfg Config) (*Plugin, error) {
 	}
 	if strings.TrimSpace(cfg.PluginToken) == "" {
 		return nil, errors.New("library.New: PluginToken required")
-	}
-	if strings.TrimSpace(cfg.BlobDir) == "" {
-		return nil, errors.New("library.New: BlobDir required")
 	}
 
 	db, err := sql.Open("postgres", cfg.DBDSN)
@@ -104,7 +99,6 @@ func New(ctx context.Context, cfg Config) (*Plugin, error) {
 		Name:       cfg.PluginName,
 		Listen:     cfg.Listen,
 		Ver:        cfg.BuildVersion,
-		BlobDir:    cfg.BlobDir,
 		MetricsTok: cfg.MetricsToken,
 		metrics:    newLibraryMetrics(),
 		startedAt:  time.Now(),
@@ -153,7 +147,6 @@ func (p *Plugin) RegisterRoutes(r gin.IRouter) {
 
 func (p *Plugin) Start(ctx context.Context) {
 	go p.heartbeatLoop(ctx)
-	go p.backfillFirmwareAssetsOnce() // self-migrate any local-only firmware blobs to assets
 }
 
 func (p *Plugin) Close() error {
@@ -177,7 +170,6 @@ func (p *Plugin) handleHealthz(c *gin.Context) {
 		"version":        p.Ver,
 		"uptime_seconds": int64(time.Since(p.startedAt).Seconds()),
 		"db_ok":          dbOK,
-		"blob_dir":       p.BlobDir,
 		"go":             runtime.Version(),
 	})
 }

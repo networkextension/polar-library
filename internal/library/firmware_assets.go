@@ -1,20 +1,18 @@
 package library
 
-// Assets migration (doc/arch/blob-storage-to-assets-migration.md in
-// polar-dock): firmware blobs move from library-svc-local disk to the
-// central polar-assets catalog (single-write). Platform-owned
-// (WorkspaceID=nil), private (download is member-gated by the svc; the
-// svc itself fetches via the internal HMAC client). This file holds the
-// asset_id column + dual-read + boot-backfill glue.
+// Assets glue (doc/arch/blob-storage-to-assets-migration.md in
+// polar-dock): firmware blobs live exclusively in the central
+// polar-assets catalog (single-write). Platform-owned (WorkspaceID=nil),
+// private (download is member-gated by the svc; the svc itself fetches
+// via the internal HMAC client). This file holds the asset_id column +
+// the assets read path (the transitional backfill was removed at cutover).
 
 import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	sdk "github.com/networkextension/polar-sdk"
@@ -49,31 +47,9 @@ func (p *Plugin) getFirmwareAssetID(id int64) (int64, bool, error) {
 	return a.Int64, true, nil
 }
 
-// uploadFirmwareToAssets registers a local firmware blob in the assets
-// catalog (content-addressed by sha). Used by the backfill.
-func (p *Plugin) uploadFirmwareToAssets(f *RevFirmware, localAbs string) (int64, error) {
-	fh, err := os.Open(localAbs)
-	if err != nil {
-		return 0, err
-	}
-	defer fh.Close()
-	meta, err := p.Dock.AssetUpload(sdk.AssetUploadInput{
-		Kind:       "package",
-		Name:       "firmwares/" + f.BlobSHA256,
-		Version:    "v1",
-		Visibility: "private",
-		Mime:       "application/octet-stream",
-		Metadata:   map[string]any{"firmware_kind": f.Kind, "firmware_version": f.Version},
-	}, fh)
-	if err != nil {
-		return 0, err
-	}
-	return meta.ID, nil
-}
-
 // streamFirmwareFromAssets serves the firmware from the assets catalog.
-// Returns false (caller falls back to local) when no asset_id, or the
-// fetch fails.
+// Returns false (no body written) when there's no asset_id or the fetch
+// fails, so the caller can emit an error.
 func (p *Plugin) streamFirmwareFromAssets(c *gin.Context, f *RevFirmware) bool {
 	assetID, ok, err := p.getFirmwareAssetID(f.ID)
 	if err != nil || !ok {
@@ -92,48 +68,4 @@ func (p *Plugin) streamFirmwareFromAssets(c *gin.Context, f *RevFirmware) bool {
 		sanitizeFilename(f.Kind), sanitizeFilename(f.Version)))
 	c.DataFromReader(http.StatusOK, resp.ContentLength, "application/octet-stream", resp.Body, nil)
 	return true
-}
-
-// backfillFirmwareAssetsOnce migrates any local-only firmware blobs into
-// the assets catalog on startup. Idempotent goroutine from Start().
-func (p *Plugin) backfillFirmwareAssetsOnce() {
-	rows, err := p.DB.Query(`SELECT id, kind, version, blob_uri, blob_sha256 FROM rev_firmwares WHERE asset_id IS NULL`)
-	if err != nil {
-		log.Printf("library: firmware backfill: query: %v", err)
-		return
-	}
-	var pending []RevFirmware
-	for rows.Next() {
-		var f RevFirmware
-		if err := rows.Scan(&f.ID, &f.Kind, &f.Version, &f.BlobURI, &f.BlobSHA256); err != nil {
-			log.Printf("library: firmware backfill: scan: %v", err)
-			continue
-		}
-		pending = append(pending, f)
-	}
-	rows.Close()
-
-	migrated := 0
-	for i := range pending {
-		f := &pending[i]
-		abs, err := p.resolveFirmwareBlobPath(f)
-		if err != nil {
-			log.Printf("library: firmware backfill: %s/%s: %v (skip)", f.Kind, f.Version, err)
-			continue
-		}
-		assetID, err := p.uploadFirmwareToAssets(f, abs)
-		if err != nil {
-			log.Printf("library: firmware backfill: %s/%s: upload: %v", f.Kind, f.Version, err)
-			continue
-		}
-		if err := p.setFirmwareAssetID(f.ID, assetID); err != nil {
-			log.Printf("library: firmware backfill: %s/%s: set asset_id: %v", f.Kind, f.Version, err)
-			continue
-		}
-		migrated++
-		log.Printf("library: firmware backfill: migrated %s/%s -> asset %d", f.Kind, f.Version, assetID)
-	}
-	if migrated > 0 {
-		log.Printf("library: firmware backfill: migrated %d firmware(s) to assets", migrated)
-	}
 }
