@@ -1,11 +1,8 @@
 package library
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -17,20 +14,15 @@ import (
 // Firmware blob upload (P-library-0b complement to the metadata-only
 // POST /api/library/firmwares).
 //
-// Storage layout (content-addressed under uploadDir):
-//   <uploadDir>/firmwares/<sha256[:2]>/<sha256>
-// Reuses the existing uploadDir (where chat attachments live) — one
-// less env var to plumb. The sha256 doubles as both filename and
-// dedup key, so repeated uploads of the same blob are O(1).
+// Storage is the central polar-assets catalog, exclusively: uploads
+// single-write to assets and downloads stream from assets. No
+// library-svc-local blob storage. See
+// doc/arch/blob-storage-to-assets-migration.md (polar-dock).
 //
 // Endpoints (wired in app.go):
 //   POST /api/library/firmwares/upload   — multipart form, admin-only
 //   GET  /api/library/firmwares/:id/download — streams the blob,
 //                                              member-readable
-
-func (p *Plugin) firmwareBlobDir() string {
-	return filepath.Join(p.BlobDir, "firmwares")
-}
 
 // handleRevFirmwareUpload — multipart upload. Form fields:
 //   file              (required) — the firmware binary blob
@@ -135,42 +127,10 @@ func (p *Plugin) handleRevFirmwareDownload(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
-	// Dual-read: prefer the central assets catalog; fall back to the
-	// local blob for rows not yet migrated (or if assets is down).
-	if p.streamFirmwareFromAssets(c, f) {
-		return
+	// Assets-only: the firmware bytes live in the central catalog.
+	if !p.streamFirmwareFromAssets(c, f) {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "firmware blob unavailable from assets"})
 	}
-	abs, err := p.resolveFirmwareBlobPath(f)
-	if err != nil {
-		c.JSON(http.StatusGone, gin.H{"error": err.Error()})
-		return
-	}
-	c.Header("Cache-Control", "public, max-age=31536000, immutable")
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s_%s.bin"`,
-		sanitizeFilename(f.Kind), sanitizeFilename(f.Version)))
-	c.File(abs)
-}
-
-// resolveFirmwareBlobPath inspects the row's blob_uri and returns the
-// absolute on-disk path IF it's a local file:// URI under the
-// configured uploadDir. Refuses to follow arbitrary file:// paths —
-// the URI must point inside uploadDir/firmwares/ to defend against
-// a hand-crafted DB row pointing at /etc/passwd.
-func (p *Plugin) resolveFirmwareBlobPath(f *RevFirmware) (string, error) {
-	if !strings.HasPrefix(f.BlobURI, "file://") {
-		return "", errors.New("blob is not locally stored (remote URI)")
-	}
-	abs := strings.TrimPrefix(f.BlobURI, "file://")
-	// Canonicalize + confine. abs must live under firmwareBlobDir().
-	canon, err := filepath.EvalSymlinks(abs)
-	if err != nil {
-		// File missing → treat as gone.
-		return "", errors.New("firmware blob file missing on disk")
-	}
-	if !strings.HasPrefix(canon, p.firmwareBlobDir()+string(filepath.Separator)) {
-		return "", errors.New("blob path outside the firmware storage dir")
-	}
-	return canon, nil
 }
 
 func parseIntCSV(s string) []int {
