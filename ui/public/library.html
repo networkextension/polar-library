@@ -50,7 +50,7 @@
                 <span class="badge">设备列表</span>
                 <span id="devicesSummary" class="lp-mode-badge">—</span>
                 <span style="flex:1;"></span>
-                <button id="devicesRefreshBtn" class="btn-inline btn-secondary" type="button">⟲</button>
+                <button id="devicesRefreshBtn" class="btn-inline btn-secondary" type="button" aria-label="刷新">⟲</button>
                 <button id="newDeviceBtn" class="btn-inline btn-primary" type="button">+ 新建</button>
               </div>
               <div class="lp-preview-body">
@@ -75,7 +75,7 @@
                 <span class="badge">固件库</span>
                 <span id="firmwaresSummary" class="lp-mode-badge">—</span>
                 <span style="flex:1;"></span>
-                <button id="firmwaresRefreshBtn" class="btn-inline btn-secondary" type="button">⟲</button>
+                <button id="firmwaresRefreshBtn" class="btn-inline btn-secondary" type="button" aria-label="刷新">⟲</button>
                 <button id="uploadFirmwareBtn" class="btn-inline btn-primary" type="button">⬆ 上传固件</button>
               </div>
               <div class="lp-preview-body">
@@ -125,26 +125,26 @@
 
     <!-- ─────────── New-device modal ─────────── -->
     <div id="deviceModal" class="lp-modal" hidden>
-      <div class="lp-modal-card" style="max-width: 540px;">
+      <div class="lp-modal-card" style="max-width: 540px;" role="dialog" aria-modal="true" aria-labelledby="deviceModalTitle">
         <div class="lp-modal-head">
-          <span class="lp-modal-title">新建设备</span>
-          <button id="deviceModalCloseBtn" type="button" class="lp-modal-close">✕</button>
+          <span class="lp-modal-title" id="deviceModalTitle">新建设备</span>
+          <button id="deviceModalCloseBtn" type="button" class="lp-modal-close" aria-label="关闭">✕</button>
         </div>
         <div class="lp-modal-body">
           <div class="settings-section-card" style="margin-bottom: 8px;">
             <label class="settings-section-title">ECID (可选，64-bit; 0x… or decimal)</label>
-            <input id="devEcid" class="input" type="text" placeholder="0xdeadbeef" />
+            <input id="devEcid" class="input" type="text" placeholder="0xdeadbeef"  aria-label="ECID（可选）"/>
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div class="settings-section-card"><label class="settings-section-title">CPID *</label><input id="devCpid" class="input" type="text" placeholder="0x8101" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">BDID</label><input id="devBdid" class="input" type="text" placeholder="10" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">CPRV</label><input id="devCprv" class="input" type="text" placeholder="0x11" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">Chip name</label><input id="devChipName" class="input" type="text" placeholder="M1" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">Board name</label><input id="devBoardName" class="input" type="text" placeholder="J293" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">OS</label><input id="devOs" class="input" type="text" placeholder="macOS 14.3 / recovery" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="devCpid">CPID *</label><input id="devCpid" class="input" type="text" placeholder="0x8101" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="devBdid">BDID</label><input id="devBdid" class="input" type="text" placeholder="10" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="devCprv">CPRV</label><input id="devCprv" class="input" type="text" placeholder="0x11" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="devChipName">Chip name</label><input id="devChipName" class="input" type="text" placeholder="M1" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="devBoardName">Board name</label><input id="devBoardName" class="input" type="text" placeholder="J293" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="devOs">OS</label><input id="devOs" class="input" type="text" placeholder="macOS 14.3 / recovery" /></div>
           </div>
           <div class="settings-section-card" style="margin-top: 8px;">
-            <label class="settings-section-title">Notes</label>
+            <label class="settings-section-title" for="devNotes">Notes</label>
             <input id="devNotes" class="input" type="text" placeholder="iPhone 12 in drawer 3" />
           </div>
           <div id="deviceModalError" class="status-text" style="color: var(--danger,#c00); margin-top: 6px;"></div>
@@ -158,29 +158,29 @@
 
     <!-- ─────────── Upload-firmware modal ─────────── -->
     <div id="firmwareModal" class="lp-modal" hidden>
-      <div class="lp-modal-card" style="max-width: 580px;">
+      <div class="lp-modal-card" style="max-width: 580px;" role="dialog" aria-modal="true" aria-labelledby="firmwareModalTitle">
         <div class="lp-modal-head">
-          <span class="lp-modal-title">上传固件</span>
-          <button id="firmwareModalCloseBtn" type="button" class="lp-modal-close">✕</button>
+          <span class="lp-modal-title" id="firmwareModalTitle">上传固件</span>
+          <button id="firmwareModalCloseBtn" type="button" class="lp-modal-close" aria-label="关闭">✕</button>
         </div>
         <div class="lp-modal-body">
           <p class="meta-subtitle" style="margin: 0 0 10px 0;">
             文件上传到 dock 本地 (<code>uploadDir/firmwares/&lt;sha&gt;</code>)，按 sha256 去重。仅元数据写库。
           </p>
           <div class="settings-section-card" style="margin-bottom: 8px;">
-            <label class="settings-section-title">文件 *</label>
+            <label class="settings-section-title" for="fwFile">文件 *</label>
             <input id="fwFile" class="input" type="file" />
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div class="settings-section-card"><label class="settings-section-title">Kind *</label><input id="fwKind" class="input" type="text" placeholder="iboot / wifi / sep / lcd / touch / ane" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">Version *</label><input id="fwVersion" class="input" type="text" placeholder="iBoot-7459.40.10" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">Vendor</label><input id="fwVendor" class="input" type="text" placeholder="apple / broadcom" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">Format</label><input id="fwFormat" class="input" type="text" placeholder="img4 / raw / elf" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">CPID compat (csv)</label><input id="fwCpidCompat" class="input" type="text" placeholder="33025,33027" /></div>
-            <div class="settings-section-card"><label class="settings-section-title">BDID compat (csv)</label><input id="fwBdidCompat" class="input" type="text" placeholder="10,12" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="fwKind">Kind *</label><input id="fwKind" class="input" type="text" placeholder="iboot / wifi / sep / lcd / touch / ane" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="fwVersion">Version *</label><input id="fwVersion" class="input" type="text" placeholder="iBoot-7459.40.10" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="fwVendor">Vendor</label><input id="fwVendor" class="input" type="text" placeholder="apple / broadcom" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="fwFormat">Format</label><input id="fwFormat" class="input" type="text" placeholder="img4 / raw / elf" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="fwCpidCompat">CPID compat (csv)</label><input id="fwCpidCompat" class="input" type="text" placeholder="33025,33027" /></div>
+            <div class="settings-section-card"><label class="settings-section-title" for="fwBdidCompat">BDID compat (csv)</label><input id="fwBdidCompat" class="input" type="text" placeholder="10,12" /></div>
           </div>
           <div class="settings-section-card" style="margin-top: 8px;">
-            <label class="settings-section-title">Extracted from</label>
+            <label class="settings-section-title" for="fwExtracted">Extracted from</label>
             <input id="fwExtracted" class="input" type="text" placeholder="iPhone13,2_17.2_21C5036c_Restore.ipsw" />
           </div>
           <div id="firmwareModalError" class="status-text" style="color: var(--danger,#c00); margin-top: 6px;"></div>
