@@ -50,7 +50,7 @@
                 <span class="badge">设备列表</span>
                 <span id="devicesSummary" class="lp-mode-badge">—</span>
                 <span style="flex:1;"></span>
-                <button id="devicesRefreshBtn" class="btn-inline btn-secondary" type="button">⟲</button>
+                <button id="devicesRefreshBtn" class="btn-inline btn-secondary" type="button" aria-label="刷新">⟲</button>
                 <button id="newDeviceBtn" class="btn-inline btn-primary" type="button">+ 新建</button>
               </div>
               <div class="lp-preview-body">
@@ -75,7 +75,7 @@
                 <span class="badge">固件库</span>
                 <span id="firmwaresSummary" class="lp-mode-badge">—</span>
                 <span style="flex:1;"></span>
-                <button id="firmwaresRefreshBtn" class="btn-inline btn-secondary" type="button">⟲</button>
+                <button id="firmwaresRefreshBtn" class="btn-inline btn-secondary" type="button" aria-label="刷新">⟲</button>
                 <button id="uploadFirmwareBtn" class="btn-inline btn-primary" type="button">⬆ 上传固件</button>
               </div>
               <div class="lp-preview-body">
@@ -125,10 +125,10 @@
 
     <!-- ─────────── New-device modal ─────────── -->
     <div id="deviceModal" class="lp-modal" hidden>
-      <div class="lp-modal-card" style="max-width: 540px;">
+      <div class="lp-modal-card" style="max-width: 540px;" role="dialog" aria-modal="true" aria-labelledby="deviceModalTitle">
         <div class="lp-modal-head">
-          <span class="lp-modal-title">新建设备</span>
-          <button id="deviceModalCloseBtn" type="button" class="lp-modal-close">✕</button>
+          <span class="lp-modal-title" id="deviceModalTitle">新建设备</span>
+          <button id="deviceModalCloseBtn" type="button" class="lp-modal-close" aria-label="关闭">✕</button>
         </div>
         <div class="lp-modal-body">
           <div class="settings-section-card" style="margin-bottom: 8px;">
@@ -158,10 +158,10 @@
 
     <!-- ─────────── Upload-firmware modal ─────────── -->
     <div id="firmwareModal" class="lp-modal" hidden>
-      <div class="lp-modal-card" style="max-width: 580px;">
+      <div class="lp-modal-card" style="max-width: 580px;" role="dialog" aria-modal="true" aria-labelledby="firmwareModalTitle">
         <div class="lp-modal-head">
-          <span class="lp-modal-title">上传固件</span>
-          <button id="firmwareModalCloseBtn" type="button" class="lp-modal-close">✕</button>
+          <span class="lp-modal-title" id="firmwareModalTitle">上传固件</span>
+          <button id="firmwareModalCloseBtn" type="button" class="lp-modal-close" aria-label="关闭">✕</button>
         </div>
         <div class="lp-modal-body">
           <p class="meta-subtitle" style="margin: 0 0 10px 0;">
